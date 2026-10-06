@@ -1,0 +1,4 @@
+[target.x86_64-unknown-linux-musl]
+linker = "scripts/x86_64-linux-musl-gcc.cmd"
+ar = "scripts/x86_64-linux-musl-ar.cmd"
+rustflags = ["-C", "link-self-contained=no"]
