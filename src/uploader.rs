@@ -2,7 +2,7 @@ use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use anyhow::{bail, Context, Result};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use reqwest::Client;
 
 use crate::config::Config;
@@ -111,21 +111,37 @@ impl Uploader {
 
         for p in providers::all_providers() {
             let meta = p.metadata();
+            let is_configured = self.config.provider == meta.name
+                || self.config.fallback.contains(&meta.name.to_string());
 
             // Skip providers where file exceeds limit
             if let Some(max) = meta.max_size_bytes {
                 if ctx.file_size > max {
+                    if !self.quiet && (meta.default_enabled || is_configured) {
+                        eprintln!(
+                            "pushy (all): skipping '{}': file size ({}) exceeds limit ({})",
+                            meta.name,
+                            format_bytes(ctx.file_size),
+                            format_bytes(max)
+                        );
+                    }
                     continue;
                 }
             }
 
             // Skip disabled providers unless enabled in config
-            if p.check_availability(false, &self.config).is_err() {
+            if let Err(err) = p.check_availability(false, &self.config) {
+                if !self.quiet && is_configured {
+                    eprintln!("pushy (all): skipping '{}': {}", meta.name, err);
+                }
                 continue;
             }
 
             // If expiry is not requested, skip temporary-only litterbox
             if meta.name == "litterbox" && ctx.expire.is_none() {
+                if !self.quiet && is_configured {
+                    eprintln!("pushy (all): skipping 'litterbox': requires expiration duration (--expire)");
+                }
                 continue;
             }
 
@@ -133,15 +149,27 @@ impl Uploader {
         }
 
         if candidates.is_empty() {
-            bail!("No available providers found for upload.");
+            bail!(
+                "No available providers found for upload (file size {}).",
+                format_bytes(ctx.file_size)
+            );
         }
+
+        let mp = if !self.quiet && std::io::stderr().is_terminal() {
+            Some(MultiProgress::new())
+        } else {
+            None
+        };
 
         let mut futures = Vec::new();
         for p in &candidates {
             let p_ref = p.as_ref();
             let name = p.metadata().name;
+            let mp_clone = mp.clone();
             futures.push(async move {
-                let res = self.attempt_upload_with_retry(p_ref, ctx, None).await;
+                let res = self
+                    .attempt_upload_with_retry_and_progress(p_ref, ctx, None, mp_clone.as_ref())
+                    .await;
                 (name.to_string(), res)
             });
         }
@@ -244,7 +272,12 @@ impl Uploader {
                 }
             }
 
-            if provider.check_availability(false, &self.config).is_err() {
+            if let Err(avail_err) = provider.check_availability(false, &self.config) {
+                if !self.quiet
+                    && (self.config.fallback.contains(&name) || self.config.provider == name)
+                {
+                    eprintln!("pushy: skipping '{}': {}", name, avail_err);
+                }
                 continue;
             }
 
@@ -274,21 +307,46 @@ impl Uploader {
         ctx: &UploadContext,
         base_url_override: Option<&str>,
     ) -> Result<String> {
+        self.attempt_upload_with_retry_and_progress(provider, ctx, base_url_override, None)
+            .await
+    }
+
+    pub async fn attempt_upload_with_retry_and_progress(
+        &self,
+        provider: &dyn Provider,
+        ctx: &UploadContext,
+        base_url_override: Option<&str>,
+        mp: Option<&MultiProgress>,
+    ) -> Result<String> {
         let meta = provider.metadata();
         let max_retries = 2;
         let mut last_err = anyhow::anyhow!("Unknown error");
 
         for attempt in 0..=max_retries {
             let pb = if !self.quiet && std::io::stderr().is_terminal() {
-                let p = ProgressBar::new(ctx.file_size);
-                p.set_style(
-                    ProgressStyle::default_bar()
-                        .template("{spinner:.green} [{elapsed_precise}] [{bar:30.cyan/blue}] {bytes}/{total_bytes} ({eta}) {msg}")
-                        .unwrap_or_else(|_| ProgressStyle::default_bar())
-                        .progress_chars("#>-"),
-                );
-                p.set_message(format!("Uploading to {}", meta.name));
-                Some(p)
+                let bar = if let Some(m) = mp {
+                    let b = m.add(ProgressBar::new(ctx.file_size));
+                    b.set_style(
+                        ProgressStyle::default_bar()
+                            .template("{spinner:.cyan} {prefix:<10} [{elapsed_precise}] [{bar:25.cyan/blue}] {percent:>3}% {bytes}/{total_bytes} ({bytes_per_sec}, ETA {eta}) {msg}")
+                            .unwrap_or_else(|_| ProgressStyle::default_bar())
+                            .progress_chars("━╸─"),
+                    );
+                    b.set_prefix(meta.name.to_string());
+                    b
+                } else {
+                    let b = ProgressBar::new(ctx.file_size);
+                    b.set_style(
+                        ProgressStyle::default_bar()
+                            .template("{spinner:.cyan} Uploading to {prefix} [{elapsed_precise}] [{bar:25.cyan/blue}] {percent:>3}% {bytes}/{total_bytes} ({bytes_per_sec}, ETA {eta}) {msg}")
+                            .unwrap_or_else(|_| ProgressStyle::default_bar())
+                            .progress_chars("━╸─"),
+                    );
+                    b.set_prefix(meta.name.to_string());
+                    b
+                };
+                bar.enable_steady_tick(Duration::from_millis(100));
+                Some(bar)
             } else {
                 None
             };
@@ -297,8 +355,28 @@ impl Uploader {
                 .upload(&self.client, ctx, &self.config, pb.clone(), base_url_override)
                 .await;
 
-            if let Some(p) = pb {
-                p.finish_and_clear();
+            if let Some(ref p) = pb {
+                if result.is_ok() {
+                    if mp.is_some() {
+                        p.finish_with_message("✔ done");
+                    } else {
+                        p.finish_and_clear();
+                    }
+                } else if attempt == max_retries
+                    || result
+                        .as_ref()
+                        .err()
+                        .map(|e| e.to_string().contains("HTTP 4"))
+                        .unwrap_or(false)
+                {
+                    if mp.is_some() {
+                        p.abandon_with_message("✖ failed");
+                    } else {
+                        p.finish_and_clear();
+                    }
+                } else {
+                    p.finish_and_clear();
+                }
             }
 
             match result {

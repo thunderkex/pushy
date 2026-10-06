@@ -78,7 +78,12 @@ impl Provider for FileioProvider {
             let body_text = resp.text().await?;
 
             if !status.is_success() {
-                bail!("file.io error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("file.io error (HTTP {})", status);
+                } else {
+                    bail!("file.io error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let fileio_resp: FileioResponse = serde_json::from_str(&body_text)

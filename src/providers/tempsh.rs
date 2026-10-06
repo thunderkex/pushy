@@ -44,7 +44,12 @@ impl Provider for TempshProvider {
             let body_text = resp.text().await?;
 
             if !status.is_success() {
-                bail!("temp.sh error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("temp.sh error (HTTP {})", status);
+                } else {
+                    bail!("temp.sh error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let link = body_text.trim();

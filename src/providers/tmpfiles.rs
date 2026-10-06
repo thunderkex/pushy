@@ -62,7 +62,12 @@ impl Provider for TmpfilesProvider {
             let body_text = resp.text().await?;
 
             if !status.is_success() {
-                bail!("tmpfiles error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("tmpfiles error (HTTP {})", status);
+                } else {
+                    bail!("tmpfiles error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let tmp_resp: TmpfilesResponse = serde_json::from_str(&body_text)

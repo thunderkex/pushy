@@ -55,7 +55,12 @@ impl Provider for CatboxProvider {
             let body_text = resp.text().await?;
 
             if !status.is_success() {
-                bail!("catbox error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("catbox error (HTTP {})", status);
+                } else {
+                    bail!("catbox error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let link = body_text.trim();

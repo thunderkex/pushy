@@ -69,7 +69,12 @@ impl Provider for ZeroxProvider {
             }
 
             if !status.is_success() {
-                bail!("0x0.st error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("0x0.st error (HTTP {})", status);
+                } else {
+                    bail!("0x0.st error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let link = body_text.trim();

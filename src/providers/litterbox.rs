@@ -64,7 +64,12 @@ impl Provider for LitterboxProvider {
             let body_text = resp.text().await?;
 
             if !status.is_success() {
-                bail!("litterbox error (HTTP {}): {}", status, body_text);
+                let sanitized = crate::provider::sanitize_error_body(&body_text);
+                if sanitized.is_empty() {
+                    bail!("litterbox error (HTTP {})", status);
+                } else {
+                    bail!("litterbox error (HTTP {}): {}", status, sanitized);
+                }
             }
 
             let link = body_text.trim();

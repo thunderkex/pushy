@@ -61,3 +61,46 @@ pub async fn create_stream_body(
         Ok(reqwest::Body::wrap_stream(stream))
     }
 }
+
+pub fn sanitize_error_body(body: &str) -> String {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    if trimmed.starts_with('<')
+        || trimmed.contains("<html")
+        || trimmed.contains("<HTML")
+        || trimmed.contains("<!DOCTYPE")
+        || trimmed.contains("<!doctype")
+    {
+        let mut in_tag = false;
+        let mut text = String::new();
+        for ch in trimmed.chars() {
+            if ch == '<' {
+                in_tag = true;
+            } else if ch == '>' {
+                in_tag = false;
+                if !text.ends_with(' ') {
+                    text.push(' ');
+                }
+            } else if !in_tag {
+                text.push(ch);
+            }
+        }
+        let words: Vec<&str> = text.split_whitespace().collect();
+        let cleaned = words.join(" ");
+        if cleaned.is_empty() {
+            String::new()
+        } else if cleaned.len() > 250 {
+            format!("{}...", &cleaned[..250])
+        } else {
+            cleaned
+        }
+    } else if trimmed.len() > 300 {
+        format!("{}...", &trimmed[..300])
+    } else {
+        trimmed.to_string()
+    }
+}
+
