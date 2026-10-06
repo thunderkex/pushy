@@ -2,6 +2,7 @@ pub mod catbox;
 pub mod fileio;
 pub mod gofile;
 pub mod litterbox;
+pub mod pixeldrain;
 pub mod tempsh;
 pub mod tmpfiles;
 pub mod transfersh;
@@ -19,6 +20,7 @@ pub fn all_providers() -> Vec<Box<dyn Provider>> {
         Box::new(zerox::ZeroxProvider),
         Box::new(fileio::FileioProvider),
         Box::new(transfersh::TransfershProvider),
+        Box::new(pixeldrain::PixeldrainProvider),
     ]
 }
 
@@ -32,6 +34,7 @@ pub fn get_provider(name: &str) -> Option<Box<dyn Provider>> {
         "zerox" | "0x0" | "0x0.st" => Some(Box::new(zerox::ZeroxProvider)),
         "fileio" | "file.io" => Some(Box::new(fileio::FileioProvider)),
         "transfersh" | "transfer.sh" => Some(Box::new(transfersh::TransfershProvider)),
+        "pixeldrain" | "pd" => Some(Box::new(pixeldrain::PixeldrainProvider)),
         _ => None,
     }
 }

@@ -62,10 +62,9 @@ fn print_providers(config: &Config) {
 
     for p in providers::all_providers() {
         let meta = p.metadata();
-        let is_configured_on = meta.default_enabled
+        let is_configured_on = p.check_availability(false, config).is_ok()
             || config.provider == meta.name
-            || config.fallback.contains(&meta.name.to_string())
-            || config.providers.contains_key(meta.name);
+            || config.fallback.contains(&meta.name.to_string());
 
         let status = if is_configured_on { "ON" } else { "OFF" };
         let limit = meta

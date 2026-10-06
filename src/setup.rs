@@ -43,6 +43,11 @@ pub fn run_setup() -> Result<()> {
         .allow_empty(true)
         .interact_text()?;
 
+    let pixeldrain_key: String = Input::new()
+        .with_prompt("   Pixeldrain API key")
+        .allow_empty(true)
+        .interact_text()?;
+
     let config_path = Config::config_path();
     let mut config = Config::load();
 
@@ -58,6 +63,11 @@ pub fn run_setup() -> Result<()> {
         None
     } else {
         Some(gofile_token.trim().to_string())
+    };
+    config.pixeldrain_key = if pixeldrain_key.trim().is_empty() {
+        None
+    } else {
+        Some(pixeldrain_key.trim().to_string())
     };
 
     config.save(&config_path)?;

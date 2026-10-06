@@ -24,6 +24,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gofile_token: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pixeldrain_key: Option<String>,
+
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub providers: HashMap<String, ProviderConfig>,
 }
@@ -68,6 +71,7 @@ impl Default for Config {
             all: false,
             catbox_userhash: None,
             gofile_token: None,
+            pixeldrain_key: None,
             providers: HashMap::new(),
         }
     }

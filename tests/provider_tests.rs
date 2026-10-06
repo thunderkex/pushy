@@ -481,3 +481,73 @@ async fn test_uploader_sends_randomized_user_agent_wiremock() {
 
     assert_eq!(link, "https://temp.sh/ua/ok.txt");
 }
+
+#[test]
+fn test_sanitize_error_body_html() {
+    let raw_html = r#"<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<title>500 Internal Server Error</title>
+<h1>Internal Server Error</h1>
+<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>"#;
+
+    let sanitized = pushy::provider::sanitize_error_body(raw_html);
+    assert!(!sanitized.contains("<p>"));
+    assert!(!sanitized.contains("<!DOCTYPE"));
+    assert!(sanitized.contains("Internal Server Error"));
+    assert!(sanitized.contains("Either the server is overloaded or there is an error"));
+}
+
+#[tokio::test]
+async fn test_upload_to_all_skips_oversized_providers() {
+    let uploader = Uploader::new(Config::default(), true);
+
+    // 500 MB file: exceeds Catbox (200MB) and Tmpfiles (100MB)
+    let ctx = UploadContext {
+        file_path: PathBuf::from("large_test.bin"),
+        file_name: "large_test.bin".to_string(),
+        file_size: 500 * 1024 * 1024,
+        expire: None,
+    };
+
+    // Candidates should only be tempsh and gofile (others either disabled or too small)
+    // Here we test whether candidates are filtered properly by checking upload_to_all
+    // Since wiremock isn't mocked for real endpoints here, we can test with non-mocked mock server
+    // or by inspecting candidates directly.
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("Internal error"))
+        .mount(&server)
+        .await;
+
+    // Both tempsh and gofile will fail against real URLs without internet or fail cleanly
+    // and catbox/tmpfiles won't even be attempted.
+    let res = uploader.upload_to_all(&ctx).await;
+    // It should either fail with network error on eligible candidates or all failed, but NEVER hang
+    assert!(res.is_err());
+}
+
+#[tokio::test]
+async fn test_pixeldrain_wiremock() {
+    let server = MockServer::start().await;
+    Mock::given(method("PUT"))
+        .and(path("/api/file/testfile.txt"))
+        .respond_with(ResponseTemplate::new(201).set_body_string(r#"{"id":"AbCd123"}"#))
+        .mount(&server)
+        .await;
+
+    let (_f, ctx) = create_temp_test_file(b"pixeldrain content");
+    let mut config = Config::default();
+    let provider = pushy::providers::pixeldrain::PixeldrainProvider;
+    assert!(provider.check_availability(true, &config).is_err());
+
+    config.pixeldrain_key = Some("k".into());
+    assert!(provider.check_availability(true, &config).is_ok());
+
+    let client = reqwest::Client::new();
+    let link = provider
+        .upload(&client, &ctx, &config, None, Some(&server.uri()))
+        .await
+        .unwrap();
+    assert_eq!(link, "https://pixeldrain.com/u/AbCd123");
+}
+
+

@@ -64,6 +64,92 @@ pushy config               # Print config path and open in $EDITOR
 | `zerox` (0x0.st) | OFF | 512 MB | 30-365 days | Disabled upstream due to spam |
 | `fileio` | OFF | 2 GB | 14 days / 1 dl | Requires API key in config |
 | `transfersh` | OFF | 10 GB | 14 days | Requires custom `base_url` |
+| `pixeldrain` | OFF | 20 GB | Kept while downloaded (~120 days idle) | Requires `pixeldrain_key` in config |
+
+---
+
+## Building from Source
+
+### Prerequisites
+
+Install the Rust toolchain (Rust 1.74+):
+- **Linux / macOS:**
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+- **Windows:** Download and run [rustup-init.exe](https://rustup.rs/).
+
+> **Note (Linux only):** If building with the default clipboard support, ensure X11/xcb development libraries are installed:
+> ```bash
+> # Debian / Ubuntu
+> sudo apt install -y pkg-config libx11-dev libxcb-shape0-dev libxcb-xfixes0-dev
+> 
+> # Fedora / RHEL
+> sudo dnf install -y pkgconf-pkg-config libX11-devel libxcb-devel
+> 
+> # Arch Linux
+> sudo pacman -S --needed pkgconf libx11 libxcb
+> ```
+> *(Or compile without clipboard support using `cargo build --release --no-default-features`)*
+
+---
+
+### 1. Quick Install (All Platforms)
+
+Clone the repository and install directly into your Cargo binary directory:
+
+```bash
+git clone https://github.com/thunderkex/pushy.git
+cd pushy
+cargo install --path .
+```
+
+`pushy` will automatically be installed into `~/.cargo/bin/` (or `%USERPROFILE%\.cargo\bin` on Windows), which is usually already in your system `PATH`.
+
+---
+
+### 2. Manual Build & Install by Platform
+
+#### Linux
+
+```bash
+git clone https://github.com/thunderkex/pushy.git
+cd pushy
+cargo build --release
+
+# Install globally:
+sudo install -m 755 target/release/pushy /usr/local/bin/
+
+# Or install for current user only:
+mkdir -p ~/.local/bin
+cp target/release/pushy ~/.local/bin/
+```
+
+#### macOS
+
+```bash
+git clone https://github.com/thunderkex/pushy.git
+cd pushy
+cargo build --release
+
+# Install globally:
+sudo cp target/release/pushy /usr/local/bin/
+```
+
+#### Windows (PowerShell)
+
+```powershell
+git clone https://github.com/thunderkex/pushy.git
+cd pushy
+cargo build --release
+
+# The compiled binary is located at:
+# target\release\pushy.exe
+
+# To copy to a directory in your PATH (e.g. C:\Windows or custom tools folder):
+Copy-Item target\release\pushy.exe "$env:USERPROFILE\.cargo\bin\pushy.exe"
+```
+
 
 ## Configuration
 
@@ -79,6 +165,7 @@ copy = false
 # Optional account tokens
 # catbox_userhash = "your_catbox_hash"
 # gofile_token = "your_gofile_token"
+# pixeldrain_key = "your_pixeldrain_api_key"   # required for pixeldrain
 
 # Advanced provider tables
 [providers.litterbox]
