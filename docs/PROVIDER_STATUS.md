@@ -1,23 +1,18 @@
 # Provider Status Report
 
-Live verification conducted on 2026-09-30 as part of Phase 0.
+Automated health check conducted on: **2026-10-07 04:04:23 UTC**
 
-| Provider | Enabled by Default | Phase 0 Status | Response Format | Sample URL / Response Body | Download Verification | Notes |
-|---|---|---|---|---|---|---|
-| `catbox` | Yes (Default) | PASS | Plain URL | `https://files.catbox.moe/w7nzjn.txt` | PASS (`hi`) | Working as expected. Max limit ~200 MB. |
-| `litterbox` | Yes | PASS | Plain URL | `https://litter.catbox.moe/iy3xra.txt` | PASS (`hi`) | Working as expected. Retention times: 1h, 12h, 24h, 72h. |
-| `tempsh` | Yes | PASS | Plain URL | `https://temp.sh/MCYBQ/t.txt` | PASS (Page 200 OK) | Working as expected. 3 days retention, 4 GB limit. |
-| `gofile` | Yes | PASS | JSON | `https://gofile.io/d/5HZoZFsH` | PASS (Page 200 OK) | Returns `data.downloadPage` & `data.guestToken`. Guest token saved/reused. |
-| `tmpfiles` | Yes | PASS | JSON | `https://tmpfiles.org/wdAUwIERYyz6/testfile.txt` | PASS (Page/File 200 OK) | Short names like `t.txt` rejected by API (`Invalid file name`); use valid/padded filename. Direct URL rewritten with `/dl/`. |
-| `zerox` (0x0.st) | No | FAIL (Disabled upstream) | Plain text error | `uploads disabled because it’s been almost nothing but AI botnet spam for the past few months. will be back with a few changes at some point. no ETA.` | N/A | Off by default. Detect "uploads disabled" message. |
-| `fileio` | No | FAIL (Broken anonymous) | HTML redirect | HTTP 301 -> Limewire web page | N/A | Off by default. Anonymous uploads broken upstream; requires API key. |
-| `transfersh` | No | FAIL (Host unreachable) | Connection failed | `curl: (7) Failed to connect to transfer.sh:443` | N/A | Off by default. Public instance offline; requires custom base_url. |
+| Provider | Status | HTTP | Sample URL / Response | Download | Notes |
+|---|---|---|---|---|---|
+| `catbox` | **FAIL** | 412 | `Invalid uploader` | N/A | Default host. ~200 MB max. |
+| `litterbox` | **PASS** | 200 | `https://litter.catbox.moe/w97fbt.txt` | PASS | Temporary files (1h, 12h, 24h, 72h). 1 GB max. |
+| `tempsh` | **PASS** | 200 | `https://temp.sh/VJzGr/t_probe.txt` | PASS | 3 days retention, 4 GB limit. |
+| `gofile` | **PASS** | 200 | `https://gofile.io/d/fIWRDZMZ` | PASS | Unlimited size, saved guestToken reused. |
+| `tmpfiles` | **FAIL** | ERR | `Connection failed / timed out` | N/A | 100 MB max, ~1 hour retention. URL rewritten to /dl/. |
+| `zerox` | **FAIL** | 503 | `uploads disabled because it’s been almost nothing but AI botnet spam for the past few months. will be back with a few ` | N/A | Off by default. Upstream disabled uploads. |
+| `fileio` | **FAIL** | 301 | `<html><head><title>301 Moved Permanently</title></head><body><center><h1>301 Moved Permanently</h1></center><hr><center>` | N/A | Off by default. Anonymous uploads broken; requires API key. |
+| `transfersh` | **FAIL** | ERR | `Connection failed / timed out` | N/A | Off by default. Public host unreliable; requires custom base_url. |
 
-## Verified Active Providers for Fallback Chain
+---
 
-1. `catbox` (Primary default)
-2. `tempsh`
-3. `gofile`
-4. `tmpfiles`
-
-`litterbox` is active when expiry `-e` is specified or selected with `-p litterbox`.
+*This report is automatically updated by the [Provider Health Check workflow](.github/workflows/provider-health.yml).*
