@@ -18,7 +18,7 @@ serde_json = "1.0"
 toml = "0.9"
 indicatif = "0.18"
 anyhow = "1.0"
-dirs = "6.0"
+dirs = "7.0"
 dialoguer = "0.12"
 arboard = { version = "3.4", optional = true }
 futures-util = "0.3"
