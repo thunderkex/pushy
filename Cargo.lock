@@ -1921,9 +1921,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "ua_generator"
-version = "0.5.81"
+version = "0.5.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cb08d1c9974f1475abc6e962f88f8e1a7bbc54969a76877af04fd3c1dc2f49c"
+checksum = "664badf57b421db4c52036e3c431eaa6d3bd6d6ce36da850fe7406ab5447899c"
 dependencies = [
  "fastrand",
 ]
