@@ -1,0 +1,40 @@
+name: Auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Approve and auto-merge Dependabot PRs
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: |
+          gh pr review --approve "$PR_URL" || true
+          gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  renovate:
+    runs-on: ubuntu-latest
+    if: github.actor == 'renovate[bot]' || github.event.pull_request.user.login == 'renovate[bot]'
+    steps:
+      - name: Approve and auto-merge Renovate PRs
+        if: "!contains(github.event.pull_request.title, 'major') && !contains(github.event.pull_request.labels.*.name, 'major')"
+        run: |
+          gh pr review --approve "$PR_URL" || true
+          gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
