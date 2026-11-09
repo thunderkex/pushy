@@ -1,13 +1,13 @@
 # Provider Status Report
 
-Automated health check conducted on: **2026-11-02 04:49:49 UTC**
+Automated health check conducted on: **2026-11-09 04:59:21 UTC**
 
 | Provider | Status | HTTP | Sample URL / Response | Download | Notes |
 |---|---|---|---|---|---|
-| `catbox` | **FAIL** | 412 | `Uploads paused until I can resolve storage issues. Sorry!` | N/A | Default host. ~200 MB max. |
+| `catbox` | **FAIL** | 412 | `Invalid uploader` | N/A | Default host. ~200 MB max. |
 | `litterbox` | **FAIL** | 412 | `Invalid uploader` | N/A | Temporary files (1h, 12h, 24h, 72h). 1 GB max. |
-| `tempsh` | **PASS** | 200 | `https://temp.sh/REPKp/t_probe.txt` | PASS | 3 days retention, 4 GB limit. |
-| `gofile` | **PASS** | 200 | `https://gofile.io/d/Y6KhGG5K` | PASS | Unlimited size, saved guestToken reused. |
+| `tempsh` | **FAIL** | 500 | `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"><title>500 Internal Server Error</title><h1>Internal Server Error` | N/A | 3 days retention, 4 GB limit. |
+| `gofile` | **PASS** | 200 | `https://gofile.io/d/8jjtqTDY` | PASS | Unlimited size, saved guestToken reused. |
 | `tmpfiles` | **FAIL** | ERR | `Connection failed / timed out` | N/A | 100 MB max, ~1 hour retention. URL rewritten to /dl/. |
 | `zerox` | **FAIL** | 503 | `uploads disabled because it’s been almost nothing but AI botnet spam for the past few months. will be back with a few ch` | N/A | Off by default. Upstream disabled uploads. |
 | `fileio` | **FAIL** | 301 | `<html><head><title>301 Moved Permanently</title></head><body><center><h1>301 Moved Permanently</h1></center><hr><center>` | N/A | Off by default. Anonymous uploads broken; requires API key. |
